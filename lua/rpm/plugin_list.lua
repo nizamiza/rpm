@@ -2,7 +2,7 @@ local function get_plugin_list()
   local plugins = {}
 
   local configs = vim.fn.globpath(
-    vim.fn.stdpath("config") .. "/lua/plugins/config", "*.lua",
+    vim.fn.stdpath("config") .. "/lua/plugins", "*.lua",
     false,
     true
   )
@@ -11,7 +11,7 @@ local function get_plugin_list()
     local routine = coroutine.create(function()
       local module_name = file:match("([^/]+)$"):gsub("%.lua$", "")
 
-      local plugin = require("plugins.config." .. module_name) 
+      local plugin = require("plugins." .. module_name) 
 
       plugins[module_name] = {
         path = plugin[1],

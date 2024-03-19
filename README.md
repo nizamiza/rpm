@@ -8,20 +8,21 @@ easy to use.
 Clone the repository into your `~/.config/nvim/pack/plugins/start` directory:
 
 ```sh
-git clone https://github.com/nizamiza/rpm ~/.config/nvim/pack/plugins/start/rpm
+git clone https://github.com/nizamiza/rpm.git ~/.config/nvim/pack/plugins/start/rpm
 ```
 
 Restart NeoVim.
 
 ## Usage
 
-1. Define your plugins in `lua/plugins/config/` directory of your NeoVim
-   configuration directory. The file should correspond to the plugin name. Avoid
-   any extra extensions in the file name (`.vim`, `.nvim`, etc). For example, if
-   you want to install `nvim-telescope/telescope.nvim`, you would create a file
-   called `telescope.lua` in the `lua/plugins/config/` directory:
+1. Define your plugins in `lua/plugins/` directory of your NeoVim configuration
+   directory. The file should correspond to the plugin name. Avoid any extra
+   extensions in the file name (`.vim`, `.nvim`, etc). For example, if you want
+   to install `nvim-telescope/telescope.nvim`, you would create a file called
+   `telescope.lua` in the `lua/plugins/` directory:
 
     ```lua
+    -- lua/plugins/telescope.lua
     return {
       "nvim-telescope/telescope.nvim",
       function()
@@ -47,6 +48,7 @@ Restart NeoVim.
    Make sure that the main plugin is the last element in the table. For example:
 
     ```lua
+    -- lua/plugins/telescope.lua
     return {
       {
         "nvim-lua/plenary.nvim",
@@ -70,7 +72,7 @@ Restart NeoVim.
    the `~/.config/nvim/pack/plugins/start/` directory and then run the setup function
    for each plugin.
 
-4. Alternatively, run `:RpmInstallAll` to install all plugins in the `lua/plugins/config/`
+4. Alternatively, run `:RpmInstallAll` to install all plugins in the `lua/plugins/`
    directory.
 
 5. Run `:RpmList` to see a list of installed plugins.
@@ -79,7 +81,7 @@ Restart NeoVim.
 
 7. Run `:RpmUpdateAll` to update all plugins.
 
-8. Run `:RpmClean` to remove all plugins that are not defined in the `lua/plugins/config/`
+8. Run `:RpmClean` to remove all plugins that are not defined in the `lua/plugins/`
    directory.
 
 9. Run `:RpmDelete` to remove a specific plugin.
