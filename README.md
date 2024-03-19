@@ -85,12 +85,13 @@ require("rpm")
     remember that only the last plugin is treated as the "main" plugin. Others will
     not show up when you run `:RpmList`.
 
-3. Run `:RpmInstall` to install the plugins. This will clone the repositories into
-   the `~/.config/nvim/pack/plugins/start/` directory and then run the setup function
-   for each plugin.
+3. Run `:RpmInstall` to install the plugin. This will clone the repositories of all
+   dependencies into the `<neovim-config-dir>/pack/plugins/start/` directory and
+   then run the init function (second argument from the config file) for each
+   plugin.
 
-4. Alternatively, run `:RpmInstallAll` to install all plugins in the `lua/plugins/`
-   directory.
+4. Alternatively, run `:RpmInstallAll` to install all plugins configured in the
+   `lua/plugins/` directory.
 
 5. Run `:RpmList` to see a list of installed plugins.
 
