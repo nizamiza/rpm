@@ -1,3 +1,5 @@
+*rpm.txt*                                A Rudimentary Plugin Manager for NeoVim 
+
 ================================================================================
 INTRODUCTION                                                             **rpm**
 
