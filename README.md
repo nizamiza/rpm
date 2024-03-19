@@ -5,13 +5,19 @@ easy to use.
 
 ## Installation
 
-Clone the repository into your `~/.config/nvim/pack/plugins/start` directory:
+1. Clone the repository into your `~/.config/nvim/pack/plugins/start` directory:
 
 ```sh
 git clone https://github.com/nizamiza/rpm.git ~/.config/nvim/pack/plugins/start/rpm
 ```
 
-Restart NeoVim.
+2. Require the plugin in your `init.lua`:
+
+```lua
+require("rpm")
+```
+
+3. Restart NeoVim.
 
 ## Usage
 
