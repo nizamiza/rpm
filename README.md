@@ -11,13 +11,24 @@ easy to use.
 git clone https://github.com/nizamiza/rpm.git ~/.config/nvim/pack/plugins/start/rpm
 ```
 
-2. Require the plugin in your `init.lua`:
+2. Create `rpm.lua` in your `~/.config/nvim/lua/plugins/` directory:
+
+```lua
+-- lua/plugins/rpm.lua
+return {
+  "nizamiza/rpm",
+}
+```
+
+> This is required so that RPM doesn't remove itself when you run `:RpmClean`.
+
+3. Require the plugin in your `init.lua`:
 
 ```lua
 require("rpm")
 ```
 
-3. Restart NeoVim.
+4. Restart NeoVim!
 
 ## Usage
 
