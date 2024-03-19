@@ -1,0 +1,85 @@
+================================================================================
+INTRODUCTION                                                             **rpm**
+
+**RPM** stands for "Rudimentary Plugin Manager" and is a simple plugin manager
+for NeoVim. It is designed to be dead simple and easy to use.
+
+Getting Started:
+
+1. Define your plugins in `lua/plugins/config/` directory of your NeoVim
+   configuration directory. The file should correspond to the plugin name. Avoid
+   any extra extensions in the file name (`.vim`, `.nvim`, etc). For example, if
+   you want to install `nvim-telescope/telescope.nvim`, you would create a file
+   called `telescope.lua` in the `lua/plugins/config/` directory:
+   
+   ```lua
+   return {
+     "nvim-telescope/telescope.nvim",
+     function()
+       require("telescope").setup({
+         defaults = {
+           layout_strategy = "vertical",
+         },
+       })
+     end
+   }
+   ```
+
+   The first element in the table is the plugin name. Either specify the full URL
+   or the shorthand name if it is available on GitHub.
+
+   The second element is an optional function that will be called after the plugin
+   is loaded. This is useful for setting up the plugin.
+
+   Restart NeoVim after adding or modifying a plugin definition.
+
+2. As you know, Telescope has a dependency on `plenary.nvim`. To define a plugin
+   dependency, you can pass a table as the first element in the plugin definition.
+   Make sure that the main plugin is the last element in the table. For example:
+   
+   ```lua
+   return {
+     {
+       "nvim-lua/plenary.nvim",
+       "nvim-telescope/telescope.nvim",
+     },
+     function()
+       require("telescope").setup({
+         defaults = {
+           layout_strategy = "vertical",
+         },
+       })
+     end
+   }
+   ```
+
+   You can use this to define dependencies or just to group plugins together. But
+   remember that only the last plugin is treated as the "main" plugin. Others will
+   not show up when you run `:RpmList`.
+
+3. Run `:RpmInstall` to install the plugins. This will clone the repositories into
+   the `~/.config/nvim/pack/plugins/start/` directory and then run the setup function 
+   for each plugin.
+
+4. Alternatively, run `:RpmInstallAll` to install all plugins in the `lua/plugins/config/`
+   directory.
+
+5. Run `:RpmList` to see a list of installed plugins.
+
+6. Run `:RpmUpdate` to update a specific plugin.
+
+7. Run `:RpmUpdateAll` to update all plugins.
+
+8. Run `:RpmClean` to remove all plugins that are not defined in the `lua/plugins/config/`
+   directory.
+
+9. Run `:RpmDelete` to remove a specific plugin.
+
+10. Run `:RpmDeleteAll` to remove all plugins.
+
+Remarks:
+
+RPM is indeed a rudimentary plugin manager. It is not designed to be a full-featured
+plugin manager like `vim-plug` or `packer.nvim`. If you seek more advanced features,
+you should consider other alternatives.
+
