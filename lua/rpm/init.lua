@@ -9,6 +9,10 @@ local function init_plugins()
       if core.is_plugin_installed(plugin.path) and plugin.init_fn then
         plugin.init_fn()
       end
+
+      if plugin == plugin_list[#plugin_list] then
+        print("Plugins initialized.")
+      end
     end)
 
     coroutine.resume(routine)
