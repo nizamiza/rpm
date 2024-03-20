@@ -4,6 +4,8 @@ local plugin_list = require("rpm.plugin_list")
 local function init_plugins()
   print("Initializing plugins...")
 
+  local routines = {}
+
   for _, plugin in pairs(plugin_list) do
     local routine = coroutine.create(function()
       if core.is_plugin_installed(plugin.path) and plugin.init_fn then
@@ -12,7 +14,19 @@ local function init_plugins()
     end)
 
     coroutine.resume(routine)
+    table.insert(routines, routine)
   end
+
+  vim.wait(100, function()
+    for _, routine in pairs(routines) do
+      if coroutine.status(routine) ~= "dead" then
+        return false
+      end
+    end
+
+    print("Plugins initialized.")
+    return true
+  end)
 end
 
 local init_routine = coroutine.create(init_plugins)
