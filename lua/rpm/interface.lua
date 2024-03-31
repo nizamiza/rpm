@@ -1,14 +1,11 @@
 local core = require("rpm.core")
 local plugin_list = require("rpm.plugin_list")
+local Autocomplete = require("rpm.autocomplete")
 
 local plugin_names = {}
 
 for name in pairs(plugin_list) do
   table.insert(plugin_names, name)
-end
-
-local function autocomplete()
-  return plugin_names
 end
 
 local function get_plugin(plugin_name)
@@ -20,10 +17,6 @@ local function get_plugin(plugin_name)
   end
 
   return plugin
-end
-
-local function cmd_arg(arg)
-  return type(arg) == "string" and arg or arg.args
 end
 
 local function use_plugin_list_op_with_routines(fn, args)
@@ -38,12 +31,27 @@ end
 
 -- RPM - Rudimentary Plugin Manager
 local Rpm = {
-  autocomplete = autocomplete,
+  commands = Autocomplete.commands,
+  command_names = Autocomplete.command_names,
+  get_command_args_info = Autocomplete.get_command_args_info,
+  autocomplete = Autocomplete.create(plugin_names),
   get = get_plugin
 }
 
-Rpm.get_info = function(plugin_name)
-  plugin_name = cmd_arg(plugin_name)
+Rpm.help = function(command_name)
+  if command_name then
+    print(Autocomplete.get_command_help(command_name))
+    return
+  end
+
+  print("Available commands:\n")
+
+  for _, command in ipairs(Autocomplete.command_names) do
+    print("\n" .. Autocomplete.get_command_help(command))
+  end
+end
+
+Rpm.info = function(plugin_name)
   local plugin = get_plugin(plugin_name)
 
   if not plugin then
@@ -66,7 +74,6 @@ Rpm.list = function()
 end
 
 Rpm.install = function(plugin_name)
-  plugin_name = cmd_arg(plugin_name)
   local plugin = get_plugin(plugin_name)
 
   if not plugin then
@@ -77,7 +84,6 @@ Rpm.install = function(plugin_name)
 end
 
 Rpm.update = function(plugin_name)
-  plugin_name = cmd_arg(plugin_name)
   local plugin = get_plugin(plugin_name)
 
   if not plugin then
@@ -89,8 +95,6 @@ end
 
 Rpm.delete = function(plugin_name, silent)
   silent = silent or false
-  plugin_name = cmd_arg(plugin_name)
-
   local plugin = get_plugin(plugin_name)
   
   if not plugin then
@@ -123,7 +127,7 @@ end
 Rpm.delete_all = function()
   local answer = vim.fn.input("Are you sure you want to delete all plugins? (y/n): ")
 
-  if answer ~= "y" then
+  if not core.parse_input_answer(answer) then
     return
   end
 
@@ -169,9 +173,4 @@ Rpm.clean = function()
   print("Deleted " .. delete_count .. " plugins.\n")
 end
 
-Rpm.cmd_name = function(name)
-  return "Rpm" .. name
-end
-
 return Rpm
-
