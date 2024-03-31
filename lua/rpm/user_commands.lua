@@ -1,71 +1,43 @@
 local Rpm = require("rpm.interface")
 
 vim.api.nvim_create_user_command(
-  Rpm.cmd_name("Info"),
-  Rpm.get_info,
+  "Rpm",
+  function(cmd)
+    -- we get 2 arguments, the first one is the command and the second one is the
+    -- plugin name.
+    
+    local command = cmd.args[1]
+    local plugin_name = cmd.args[2]
+    
+    if not command then
+      print("No command provided.")
+      return
+    end
+
+    command = command:lower()
+
+    if not vim.tbl_contains(Rpm.command_list, command) then
+      print("Invalid command. Available commands are:")
+      print(table.concat(Rpm.command_list, ", "))
+      return
+    end
+
+    if not plugin_name then
+      print("No plugin name provided.")
+      return
+    end
+
+    plugin_name = plugin_name:lower()
+
+    if command:match("all$") then
+      Rpm[command]()
+    else
+      Rpm[command](plugin_name)
+    end
+  end,
   {
-    nargs = 1,
-    desc = "Get info about a plugin",
+    nargs = "+",
+    desc = "Run an RPM command",
     complete = Rpm.autocomplete
   }
-)
-
-vim.api.nvim_create_user_command(
-  Rpm.cmd_name("List"),
-  Rpm.list,
-  { nargs = 0, desc = "List all plugins" }
-)
-
-vim.api.nvim_create_user_command(
-  Rpm.cmd_name("Install"),
-  Rpm.install,
-  {
-    nargs = 1,
-    desc = "Install a plugin",
-    complete = Rpm.autocomplete
-  }
-)
-
-vim.api.nvim_create_user_command(
-  Rpm.cmd_name("InstallAll"),
-  Rpm.install_all,
-  { nargs = 0, desc = "Install all plugins" }
-)
-
-vim.api.nvim_create_user_command(
-  Rpm.cmd_name("Update"),
-  Rpm.update,
-  {
-    nargs = 1,
-    desc = "Update a plugin",
-    complete = Rpm.autocomplete
-  }
-)
-
-vim.api.nvim_create_user_command(
-  Rpm.cmd_name("UpdateAll"),
-  Rpm.update_all,
-  { nargs = 0, desc = "Update all plugins" }
-)
-
-vim.api.nvim_create_user_command(
-  Rpm.cmd_name("Delete"),
-  Rpm.delete,
-  {
-    nargs = 1,
-    desc = "Delete a plugin",
-    complete = Rpm.autocomplete
-  }
-)
-
-vim.api.nvim_create_user_command(
-  Rpm.cmd_name("DeleteAll"),
-  Rpm.delete_all,
-  { nargs = 0, desc = "Delete all plugins" }
-)
-
-vim.api.nvim_create_user_command(
-  Rpm.cmd_name("Clean"),
-  Rpm.clean,
-  { nargs = 0, desc = "Delete all non-configured plugins" }
 )

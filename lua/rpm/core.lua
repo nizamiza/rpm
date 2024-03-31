@@ -1,3 +1,11 @@
+local function parse_input_answer(answer)
+  if answer:lower():match("^y") then
+    return true
+  end
+
+  return false
+end
+
 local function get_plugin_version(install_path)
   return vim.fn.isdirectory(install_path) == 0 and "Not installed" or
     vim.fn.system({ "git", "-C", install_path, "describe", "--tags" }):gsub("\n", "")
@@ -87,7 +95,7 @@ local function update_plugin(path, silent)
         answer = vim.fn.input("Would you like to install it? (y/n): ")
       end
 
-      if answer ~= "y" then
+      if not parse_input_answer(answer) then
         goto continue
       end
 
@@ -131,7 +139,7 @@ local function delete_plugin(path, silent)
     if not silent then
       local answer = vim.fn.input("Are you sure you want to delete " .. info.name .. "? (y/n): ")
 
-      if answer ~= "y" then
+      if not parse_input_answer(answer) then
         goto continue
       end
 
