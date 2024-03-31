@@ -3,37 +3,36 @@ local Rpm = require("rpm.interface")
 vim.api.nvim_create_user_command(
   "Rpm",
   function(cmd)
-    -- we get 2 arguments, the first one is the command and the second one is the
-    -- plugin name.
-    
-    local command = cmd.args[1]
-    local plugin_name = cmd.args[2]
+    local command = cmd.fargs[1]
     
     if not command then
       print("No command provided.")
       return
     end
 
-    command = command:lower()
+    rpm_command = Rpm.commands[command]
 
-    if not vim.tbl_contains(Rpm.command_list, command) then
-      print("Invalid command. Available commands are:")
-      print(table.concat(Rpm.command_list, ", "))
+    if not rpm_command then 
+      print("Invalid command. Run `:Rpm help` for a list of commands.")
       return
     end
 
-    if not plugin_name then
-      print("No plugin name provided.")
+    local args_info = Rpm.get_command_args_info(rpm_command)
+    local min_args = args_info.min_args
+    local max_args = args_info.max_args
+
+    if #cmd.fargs - 1 > max_args or #cmd.fargs - 1 < min_args then
+      print("Invalid number of arguments.")
+      Rpm.help(command)
       return
     end
 
-    plugin_name = plugin_name:lower()
-
-    if command:match("all$") then
-      Rpm[command]()
-    else
-      Rpm[command](plugin_name)
+    local args = {}
+    for i = 2, #cmd.fargs do
+      table.insert(args, cmd.fargs[i])
     end
+
+    Rpm[command](unpack(args))
   end,
   {
     nargs = "+",

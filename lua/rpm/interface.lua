@@ -31,10 +31,25 @@ end
 
 -- RPM - Rudimentary Plugin Manager
 local Rpm = {
-  command_list = Autocomplete.command_list,
+  commands = Autocomplete.commands,
+  command_names = Autocomplete.command_names,
+  get_command_args_info = Autocomplete.get_command_args_info,
   autocomplete = Autocomplete.create(plugin_names),
   get = get_plugin
 }
+
+Rpm.help = function(command_name)
+  if command_name then
+    print(Autocomplete.get_command_help(command_name))
+    return
+  end
+
+  print("Available commands:\n")
+
+  for _, command in ipairs(Autocomplete.command_names) do
+    print("\n" .. Autocomplete.get_command_help(command))
+  end
+end
 
 Rpm.info = function(plugin_name)
   local plugin = get_plugin(plugin_name)
