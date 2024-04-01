@@ -1,4 +1,4 @@
-*rpm.txt*                                A Rudimentary Plugin Manager for NeoVim 
+*rpm*                                    A Rudimentary Plugin Manager for NeoVim 
 
 ================================================================================
 INTRODUCTION                                                             **rpm**
@@ -70,18 +70,25 @@ Getting Started:
 4. Alternatively, run `:Rpm install_all` to install all plugins in the
    `lua/plugins/` directory.
 
-5. Run `:Rpm list` to see a list of installed plugins.
+5. Run `:Rpm generate_helptags` to generate helptags for a plugin. By default,
+   RPM runs the help tag generation command for each plugin after it is
+   installed. You can run this command manually if you need to regenerate the
+   helptags.
 
-6. Run `:Rpm update` to update a specific plugin.
+6. Run `:Rpm list` to see a list of installed plugins.
 
-7. Run `:Rpm update_all` to update all plugins.
+7. Run `:Rpm update` to update a specific plugin.
 
-8. Run `:Rpm clean` to remove all plugins that are not defined in the
+8. Run `:Rpm update_all` to update all plugins.
+
+9. Run `:Rpm clean` to remove all plugins that are not defined in the
    `lua/plugins/` directory.
 
-9. Run `:Rpm delete` to remove a specific plugin.
+10. Run `:Rpm delete` to remove a specific plugin.
 
-10. Run `:Rpm delete_all` to remove all plugins.
+11. Run `:Rpm delete_all` to remove all plugins.
+
+You can run `:Run help` to see a list of available commands.
 
 Remarks:
 

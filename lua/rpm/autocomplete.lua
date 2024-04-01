@@ -38,7 +38,11 @@ local commands = {
   clean = {
     desc = "Delete plugins that don't have a config file",
     nargs = 0
-  }
+  },
+  generate_helptags = {
+    desc = "Generate helptags for a plugin",
+    nargs = 1
+  },
 }
 
 local command_names = {}
