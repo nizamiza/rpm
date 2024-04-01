@@ -51,6 +51,16 @@ Rpm.help = function(command_name)
   end
 end
 
+Rpm.generate_helptags = function(plugin_name)
+  local plugin = get_plugin(plugin_name)
+
+  if not plugin then
+    return
+  end
+
+  core.generate_helptags(plugin.path)
+end
+
 Rpm.info = function(plugin_name)
   local plugin = get_plugin(plugin_name)
 
@@ -101,6 +111,20 @@ Rpm.delete = function(plugin_name, silent)
     return
   end
 
+  local is_rpm = plugin_name == "rpm"
+
+  if is_rpm then
+    silent = true
+
+    local answer = vim.fn.input(
+      "Are you sure you want to delete RPM? This is your plugin manager :D (y/n): "
+    )
+
+    if not core.parse_input_answer(answer) then
+      return
+    end
+  end
+
   core.delete_plugin(plugin.path, silent)
 end
 
@@ -134,10 +158,14 @@ Rpm.delete_all = function()
   print("\n")
 
   use_plugin_list_op_with_routines(function(name)
+    if name == "rpm" then
+      return
+    end
+
     Rpm.delete(name, true)
   end)
 
-  print("All plugins have been deleted.")
+  print("All plugins (except for RPM) have been deleted.")
 end
 
 Rpm.clean = function()
@@ -171,6 +199,14 @@ Rpm.clean = function()
   end
 
   print("Deleted " .. delete_count .. " plugins.\n")
+end
+
+Rpm.setup = function(opts)
+  opts = opts or {}
+
+  if opts.after_init and type(opts.after_init) == "function" then
+    Rpm.after_init = opts.after_init
+  end
 end
 
 return Rpm

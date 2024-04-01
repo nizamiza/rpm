@@ -1,3 +1,4 @@
+local Rpm = require("rpm.interface")
 local core = require("rpm.core")
 local plugin_list = require("rpm.plugin_list")
 
@@ -25,6 +26,11 @@ local function init_plugins()
     end
 
     print("Plugins initialized.")
+
+    if Rpm.after_init then
+      Rpm.after_init(plugin_list)
+    end
+
     return true
   end)
 end
@@ -37,4 +43,3 @@ vim.api.nvim_create_autocmd({ "VimEnter" }, {
     coroutine.resume(init_routine)
   end
 })
-

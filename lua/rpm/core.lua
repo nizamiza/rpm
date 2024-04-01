@@ -61,6 +61,19 @@ local function is_plugin_installed(path, silent)
   return true
 end
 
+local function generate_helptags(path, silent)
+  local info = get_plugin_info(path)
+  local doc_dir = info.install_path .. "/doc"
+
+  if vim.fn.isdirectory(doc_dir) == 1 then
+    silent_print("Generating help tags for " .. info.name .. "...", silent)
+
+    vim.cmd("helptags " .. doc_dir)
+    
+    silent_print("Help tags for " .. info.name .. " have been generated!", silent)
+  end
+end
+
 local function install_plugin(path, silent)
   local paths = coerce_to_table(path)
 
@@ -76,6 +89,8 @@ local function install_plugin(path, silent)
     silent_print("Cloning " .. url .. " to " .. info.install_path .. "...", silent)
 
     vim.fn.system({ "git", "clone", url, info.install_path })
+
+    generate_helptags(p, silent)
 
     silent_print("Dependency " .. info.name .. " has been installed!", silent)
     ::continue::
@@ -160,5 +175,7 @@ return {
   get_plugin_info = get_plugin_info,
   install_plugin = install_plugin, 
   is_plugin_installed = is_plugin_installed,
+  parse_input_answer = parse_input_answer,
+  generate_helptags = generate_helptags,
   update_plugin = update_plugin
 }
