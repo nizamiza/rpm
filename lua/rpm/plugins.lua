@@ -6,19 +6,30 @@ local configs = vim.fn.globpath(
   true
 )
 
+M._ = {
+  count = #configs,
+  loaded = false
+}
+
+local current_count = 0
+
 for _, file in ipairs(configs) do
-  local routine = coroutine.create(function()
+  vim.schedule(function()
     local module_name = file:match("([^/]+)$"):gsub("%.lua$", "")
 
     local plugin = require("plugins." .. module_name)
 
     M[module_name] = {
+      module_name = module_name,
       path = plugin[1],
+      initialized = false,
       init_fn = plugin[2] or function() end
     }
-  end)
 
-  coroutine.resume(routine)
+    if current_count == M._.count then
+      M._.loaded = true
+    end
+  end)
 end
 
 return M

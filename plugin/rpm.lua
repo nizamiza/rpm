@@ -4,4 +4,4 @@ end
 
 vim.g.loaded_rpm = 1
 
-require("rpm.user_commands")
+require("rpm.commands")

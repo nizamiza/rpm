@@ -106,9 +106,15 @@ function M.narrow_options(options, arg_lead)
   local arg_lead_lower = arg_lead:lower()
 
   for _, option in ipairs(options) do
+    if option == "_" then
+      goto continue
+    end
+
     if string.match(option:lower(), arg_lead_lower) then
       table.insert(matches, option)
     end
+
+    ::continue::
   end
 
   return matches
