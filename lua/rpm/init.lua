@@ -1,45 +1,53 @@
-local Rpm = require("rpm.interface")
-local core = require("rpm.core")
-local plugin_list = require("rpm.plugin_list")
+local Interface = require("rpm.interface")
+local Core = require("rpm.core")
+local Plugins = require("rpm.plugins")
+
+local function after_init()
+  vim.notify("Plugins initialized.")
+
+  Interface._.after_init(Plugins)
+
+  if Interface.after_init then
+    Interface.after_init(Plugins)
+  end
+end
+
+local INIT_INTERVAL = 100
 
 local function init_plugins()
-  print("Initializing plugins...")
-
-  local routines = {}
-
-  for _, plugin in pairs(plugin_list) do
-    local routine = coroutine.create(function()
-      if core.is_plugin_installed(plugin.path) and plugin.init_fn then
-        plugin.init_fn()
-      end
-    end)
-
-    coroutine.resume(routine)
-    table.insert(routines, routine)
-  end
-
-  vim.wait(100, function()
-    for _, routine in pairs(routines) do
-      if coroutine.status(routine) ~= "dead" then
-        return false
-      end
+  vim.wait(INIT_INTERVAL, function()
+    if Plugins._.loaded then
+      return false
     end
 
-    print("Plugins initialized.")
+    vim.notify("Initializing " .. Plugins._.count .. " plugins.")
+    local initialized_count = 0
 
-    if Rpm.after_init then
-      Rpm.after_init(plugin_list)
+    for _, plugin in pairs(Plugins) do
+      vim.schedule(function()
+        if Core.is_plugin_installed(plugin.path) and plugin.init_fn then
+          plugin.init_fn()
+          plugin.initialized = true
+        end
+
+        initialized_count = initialized_count + 1
+
+        if initialized_count == Plugins._.count then
+          vim.schedule(after_init)
+        end
+      end)
     end
 
     return true
-  end)
+  end, INIT_INTERVAL)
 end
 
-local init_routine = coroutine.create(init_plugins)
+local rpm_augroup = vim.api.nvim_create_augroup("rpm", {})
 
 vim.api.nvim_create_autocmd({ "VimEnter" }, {
   desc = "Fetch plugins",
+  group = rpm_augroup,
   callback = function()
-    coroutine.resume(init_routine)
+    vim.schedule(init_plugins)
   end
 })

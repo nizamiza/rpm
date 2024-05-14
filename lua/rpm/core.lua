@@ -10,10 +10,14 @@ end
 
 function M.get_plugin_version(install_path)
   return vim.fn.isdirectory(install_path) == 0 and "Not installed" or
-      vim.fn.system({ "git", "-C", install_path, "describe", "--tags" }):gsub("\n", "")
+    vim.fn.system({ "git", "-C", install_path, "describe", "--tags" }):gsub("\n", "")
 end
 
 function M.coerce_to_table(value)
+  if not value then
+    return {}
+  end
+
   if type(value) == "table" then
     return value
   end
@@ -25,12 +29,21 @@ function M.silent_print(message, silent)
   silent = silent or false
 
   if not silent then
-    print(message)
+    vim.notify(message)
   end
 end
 
 function M.get_plugin_info(path)
   local paths = M.coerce_to_table(path)
+
+  if #paths == 0 then
+    return {
+      install_path = "Unknown",
+      name = vim.inspect(path) or "Unknown",
+      path = "Unknown",
+      version = "Unknown"
+    }
+  end
 
   -- Consider the last path as the main dependency
   local last_path = paths[#paths]
@@ -49,7 +62,7 @@ function M.get_plugin_info(path)
 end
 
 function M.is_plugin_installed(path, silent)
-  local paths = M.coerce_to_table(path)
+  local paths = M.coerce_to_table(path) 
 
   for _, p in ipairs(paths) do
     local info = M.get_plugin_info(p)
@@ -71,7 +84,7 @@ function M.generate_helptags(path, silent)
     M.silent_print("Generating help tags for " .. info.name .. "...", silent)
 
     vim.cmd("helptags " .. doc_dir)
-
+    
     M.silent_print("Help tags for " .. info.name .. " have been generated!", silent)
   end
 end
@@ -81,7 +94,7 @@ function M.install_plugin(path, silent)
 
   for _, p in ipairs(paths) do
     if M.is_plugin_installed(p, true) then
-      M.silent_print("Dependency " .. p .. " is already installed.\n", silent)
+      M.silent_print("Dependency " .. p .. " is already installed.", silent)
       goto continue
     end
 
@@ -116,10 +129,6 @@ function M.update_plugin(path, silent)
         goto continue
       end
 
-      if not silent then
-        print("\n")
-      end
-
       M.install_plugin(p, silent)
       goto continue
     end
@@ -149,7 +158,7 @@ function M.delete_plugin(path, silent)
     local info = M.get_plugin_info(p)
 
     if vim.fn.isdirectory(info.install_path) == 0 then
-      M.silent_print("Dependency " .. info.name .. " is not installed.\n", silent)
+      M.silent_print("Dependency " .. info.name .. " is not installed.", silent)
       goto continue
     end
 
@@ -159,8 +168,6 @@ function M.delete_plugin(path, silent)
       if not M.parse_input_answer(answer) then
         goto continue
       end
-
-      print("\n")
     end
 
     M.silent_print("Deleting " .. info.name .. "...", silent)

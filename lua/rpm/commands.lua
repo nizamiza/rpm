@@ -1,4 +1,4 @@
-local Rpm = require("rpm.interface")
+local Interface = require("rpm.interface")
 
 vim.api.nvim_create_user_command(
   "Rpm",
@@ -10,20 +10,20 @@ vim.api.nvim_create_user_command(
       return
     end
 
-    local rpm_command = Rpm.commands[command]
+    local rpm_command = Interface.commands[command]
 
     if not rpm_command then
       print("Invalid command. Run `:Rpm help` for a list of commands.")
       return
     end
 
-    local args_info = Rpm.get_command_args_info(rpm_command)
+    local args_info = Interface.get_command_args_info(rpm_command)
     local min_args = args_info.min_args
     local max_args = args_info.max_args
 
     if #cmd.fargs - 1 > max_args or #cmd.fargs - 1 < min_args then
       print("Invalid number of arguments.")
-      Rpm.help(command)
+      Interface.help(command)
       return
     end
 
@@ -32,11 +32,11 @@ vim.api.nvim_create_user_command(
       table.insert(args, cmd.fargs[i])
     end
 
-    Rpm[command](unpack(args))
+    Interface[command](unpack(args))
   end,
   {
     nargs = "+",
     desc = "Run an RPM command",
-    complete = Rpm.autocomplete
+    complete = Interface.autocomplete
   }
 )
