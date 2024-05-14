@@ -1,4 +1,6 @@
-local commands = {
+local M = {}
+
+M.commands = {
   help = {
     desc = "Get help for a command",
     nargs = "?"
@@ -45,20 +47,20 @@ local commands = {
   },
 }
 
-local command_names = {}
-local name_padding = 0
+M.command_names = {}
+M.name_padding = 0
 
-for command, _ in pairs(commands) do
-  table.insert(command_names, command)
+for command, _ in pairs(M.commands) do
+  table.insert(M.command_names, command)
 
-  if #command > name_padding then
-    name_padding = #command
+  if #command > M.name_padding then
+    M.name_padding = #command
   end
 end
 
-local indent = string.rep(" ", name_padding + 3)
+local indent = string.rep(" ", M.name_padding + 3)
 
-local function get_command_args_info(command)
+function M.get_command_args_info(command)
   if command == nil then
     return {
       has_args = false,
@@ -70,11 +72,11 @@ local function get_command_args_info(command)
   local has_args = type(command.nargs) == "string" or command.nargs > 0
 
   local max_args = command.nargs == "?" and 1
-    or (command.nargs == "+" or commands.nargs == "*") and math.huge
-    or command.nargs
+      or (command.nargs == "+" or M.commands.nargs == "*") and math.huge
+      or command.nargs
 
   local min_args = (command.nargs == "?" or command.nargs == "*") and 0
-    or max_args
+      or max_args
 
   return {
     has_args = has_args,
@@ -83,24 +85,23 @@ local function get_command_args_info(command)
   }
 end
 
-local function get_command_help(name)
-  local command = commands[name]
+function M.get_command_help(name)
+  local command = M.commands[name]
 
   if not command then
     return "Command " .. name .. " not found."
   end
 
-  local padded_name = name .. string.rep(" ", name_padding - #name)
+  local padded_name = name .. string.rep(" ", M.name_padding - #name)
 
-  local has_args = get_command_args_info(command).has_args
+  local has_args = M.get_command_args_info(command).has_args
 
   return padded_name .. " - " .. command.desc .. "\n" ..
-    indent .. "Required arguments: " .. command.nargs .. "\n" ..
-    indent .. "Usage: `:Rpm " .. name .. (has_args and " <args>" or "") .. "`"
+      indent .. "Required arguments: " .. command.nargs .. "\n" ..
+      indent .. "Usage: `:Rpm " .. name .. (has_args and " <args>" or "") .. "`"
 end
 
-
-local function narrow_options(options, arg_lead)
+function M.narrow_options(options, arg_lead)
   local matches = {}
   local arg_lead_lower = arg_lead:lower()
 
@@ -113,18 +114,18 @@ local function narrow_options(options, arg_lead)
   return matches
 end
 
-local function create_autocomplete(plugin_list)
+function M.create(plugin_list)
   local function autocomplete(arg_lead, cmd_line)
     local args = vim.split(cmd_line, " ")
 
     if #args == 1 then
-      return command_names
+      return M.command_names
     end
 
     local cmd = args[2]:lower()
-    local command = commands[cmd]
+    local command = M.commands[cmd]
 
-    local args_info = get_command_args_info(command)
+    local args_info = M.get_command_args_info(command)
     local has_args = args_info.has_args
     local max_args = args_info.max_args
     local is_over_max_args = #args - 2 > max_args
@@ -138,20 +139,11 @@ local function create_autocomplete(plugin_list)
     local is_help = cmd == "help"
 
     return has_args and not is_help and
-      narrow_options(plugin_list, arg_lead) or
-      narrow_options(command_names, arg_lead)
+        M.narrow_options(plugin_list, arg_lead) or
+        M.narrow_options(M.command_names, arg_lead)
   end
 
   return autocomplete
 end
 
-local Autocomplete = {
-  create = create_autocomplete,
-  commands = commands,
-  command_names = command_names,
-  get_command_help = get_command_help,
-  get_command_args_info = get_command_args_info,
-  narrow_options = narrow_options
-}
-
-return Autocomplete
+return M

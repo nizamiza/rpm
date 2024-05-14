@@ -4,15 +4,15 @@ vim.api.nvim_create_user_command(
   "Rpm",
   function(cmd)
     local command = cmd.fargs[1]
-    
+
     if not command then
       print("No command provided.")
       return
     end
 
-    rpm_command = Rpm.commands[command]
+    local rpm_command = Rpm.commands[command]
 
-    if not rpm_command then 
+    if not rpm_command then
       print("Invalid command. Run `:Rpm help` for a list of commands.")
       return
     end

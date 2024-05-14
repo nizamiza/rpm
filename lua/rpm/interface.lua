@@ -1,15 +1,21 @@
+local M = {}
+
 local core = require("rpm.core")
 local plugin_list = require("rpm.plugin_list")
-local Autocomplete = require("rpm.autocomplete")
+local autocomplete = require("rpm.autocomplete")
 
-local plugin_names = {}
+M.plugin_names = {}
+M.commands = autocomplete.commands
+M.command_names = autocomplete.command_names
+M.get_command_args_info = autocomplete.get_command_args_info
+M.autocomplete = autocomplete.create(M.plugin_names)
 
 for name in pairs(plugin_list) do
-  table.insert(plugin_names, name)
+  table.insert(M.plugin_names, name)
 end
 
-local function get_plugin(plugin_name)
-  local plugin = plugin_list[plugin_name] 
+function M.get(plugin_name)
+  local plugin = plugin_list[plugin_name]
 
   if not plugin then
     print("Plugin " .. plugin_name .. " not found.\n")
@@ -19,7 +25,7 @@ local function get_plugin(plugin_name)
   return plugin
 end
 
-local function use_plugin_list_op_with_routines(fn, args)
+function M.use_plugin_list_op_with_routines(fn, args)
   for name, plugin in pairs(plugin_list) do
     local routine = coroutine.create(function()
       fn(name, plugin, args)
@@ -29,30 +35,21 @@ local function use_plugin_list_op_with_routines(fn, args)
   end
 end
 
--- RPM - Rudimentary Plugin Manager
-local Rpm = {
-  commands = Autocomplete.commands,
-  command_names = Autocomplete.command_names,
-  get_command_args_info = Autocomplete.get_command_args_info,
-  autocomplete = Autocomplete.create(plugin_names),
-  get = get_plugin
-}
-
-Rpm.help = function(command_name)
+function M.help(command_name)
   if command_name then
-    print(Autocomplete.get_command_help(command_name))
+    print(autocomplete.get_command_help(command_name))
     return
   end
 
   print("Available commands:\n")
 
-  for _, command in ipairs(Autocomplete.command_names) do
-    print("\n" .. Autocomplete.get_command_help(command))
+  for _, command in ipairs(autocomplete.command_names) do
+    print("\n" .. autocomplete.get_command_help(command))
   end
 end
 
-Rpm.generate_helptags = function(plugin_name)
-  local plugin = get_plugin(plugin_name)
+function M.generate_helptags(plugin_name)
+  local plugin = M.get(plugin_name)
 
   if not plugin then
     return
@@ -61,8 +58,8 @@ Rpm.generate_helptags = function(plugin_name)
   core.generate_helptags(plugin.path)
 end
 
-Rpm.info = function(plugin_name)
-  local plugin = get_plugin(plugin_name)
+function M.info(plugin_name)
+  local plugin = M.get(plugin_name)
 
   if not plugin then
     return
@@ -76,15 +73,15 @@ Rpm.info = function(plugin_name)
   print("Installation Path: " .. info.install_path)
 end
 
-Rpm.list = function()
-  use_plugin_list_op_with_routines(function(name, plugin)
+function M.list()
+  M.use_plugin_list_op_with_routines(function(_, plugin)
     local info = core.get_plugin_info(plugin.path)
     print(info.name .. " (" .. info.version .. ")")
   end)
 end
 
-Rpm.install = function(plugin_name)
-  local plugin = get_plugin(plugin_name)
+function M.install(plugin_name)
+  local plugin = M.get(plugin_name)
 
   if not plugin then
     return
@@ -93,8 +90,8 @@ Rpm.install = function(plugin_name)
   core.install_plugin(plugin.path)
 end
 
-Rpm.update = function(plugin_name)
-  local plugin = get_plugin(plugin_name)
+function M.update(plugin_name)
+  local plugin = M.get(plugin_name)
 
   if not plugin then
     return
@@ -103,10 +100,10 @@ Rpm.update = function(plugin_name)
   core.update_plugin(plugin.path)
 end
 
-Rpm.delete = function(plugin_name, silent)
+function M.delete(plugin_name, silent)
   silent = silent or false
-  local plugin = get_plugin(plugin_name)
-  
+  local plugin = M.get(plugin_name)
+
   if not plugin then
     return
   end
@@ -128,27 +125,27 @@ Rpm.delete = function(plugin_name, silent)
   core.delete_plugin(plugin.path, silent)
 end
 
-Rpm.install_all = function()
+function M.install_all()
   print("Installing all plugins...\n")
 
-  use_plugin_list_op_with_routines(function(name)
-    Rpm.install(name)
+  M.use_plugin_list_op_with_routines(function(name)
+    M.install(name)
   end)
 
   print("\nAll plugins have been installed.")
 end
 
-Rpm.update_all = function()
+function M.update_all()
   print("Updating all plugins...\n")
 
-  use_plugin_list_op_with_routines(function(name)
-    Rpm.update(name)
+  M.use_plugin_list_op_with_routines(function(name)
+    M.update(name)
   end)
 
   print("\nAll plugins have been updated.")
 end
 
-Rpm.delete_all = function()
+function M.delete_all()
   local answer = vim.fn.input("Are you sure you want to delete all plugins? (y/n): ")
 
   if not core.parse_input_answer(answer) then
@@ -157,18 +154,18 @@ Rpm.delete_all = function()
 
   print("\n")
 
-  use_plugin_list_op_with_routines(function(name)
+  M.use_plugin_list_op_with_routines(function(name)
     if name == "rpm" then
       return
     end
 
-    Rpm.delete(name, true)
+    M.delete(name, true)
   end)
 
   print("All plugins (except for RPM) have been deleted.")
 end
 
-Rpm.clean = function()
+function M.clean()
   local installed_plugins = vim.fn.globpath(
     vim.fn.stdpath("config") .. "/pack/plugins/start",
     "*",
@@ -180,7 +177,7 @@ Rpm.clean = function()
 
   for _, plugin in pairs(plugin_list) do
     local paths = type(plugin.path) == "table" and plugin.path or { plugin.path }
-    
+
     for _, path in ipairs(paths) do
       local info = core.get_plugin_info(path)
       table.insert(all_plugin_paths, info.name)
@@ -201,12 +198,12 @@ Rpm.clean = function()
   print("Deleted " .. delete_count .. " plugins.\n")
 end
 
-Rpm.setup = function(opts)
+function M.setup(opts)
   opts = opts or {}
 
   if opts.after_init and type(opts.after_init) == "function" then
-    Rpm.after_init = opts.after_init
+    M.after_init = opts.after_init
   end
 end
 
-return Rpm
+return M
