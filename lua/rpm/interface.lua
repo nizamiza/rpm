@@ -15,7 +15,7 @@ for name in pairs(plugin_list) do
 end
 
 function M.get(plugin_name)
-  local plugin = M.plugin_list[plugin_name]
+  local plugin = plugin_list[plugin_name]
 
   if not plugin then
     print("Plugin " .. plugin_name .. " not found.\n")

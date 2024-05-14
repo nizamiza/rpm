@@ -114,7 +114,7 @@ function M.narrow_options(options, arg_lead)
   return matches
 end
 
-function M.create_autocomplete(plugin_list)
+function M.create(plugin_list)
   local function autocomplete(arg_lead, cmd_line)
     local args = vim.split(cmd_line, " ")
 
