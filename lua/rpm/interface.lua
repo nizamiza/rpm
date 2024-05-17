@@ -244,9 +244,9 @@ function M.clean()
 end
 
 ---@class SetupOptions
----@field after_init fun()
+---@field after_init? fun()
 
----@param opts SetupOptions
+---@param opts? SetupOptions
 ---@return nil
 function M.setup(opts)
   local options = opts or {}
