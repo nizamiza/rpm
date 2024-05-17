@@ -38,53 +38,53 @@ require("rpm")
    to install `nvim-telescope/telescope.nvim`, you would create a file called
    `telescope.lua` in the `lua/plugins/` directory:
 
-    ```lua
-    -- lua/plugins/telescope.lua
-    return {
-      "nvim-telescope/telescope.nvim",
-      function()
-        require("telescope").setup({
-          defaults = {
-            layout_strategy = "vertical",
-          },
-        })
-      end
-    }
-    ```
+   ```lua
+   -- lua/plugins/telescope.lua
+   return {
+     "nvim-telescope/telescope.nvim",
+     function()
+       require("telescope").setup({
+         defaults = {
+           layout_strategy = "vertical",
+         },
+       })
+     end
+   }
+   ```
 
-    The first element in the table is the plugin name. Either specify a full URL
-    to the repository or a shorthand name if it is available on GitHub.
+   The first element in the table is the plugin name. Either specify a full URL
+   to the repository or a shorthand name if it is available on GitHub.
 
-    The second element is an optional function that will be called after the
-    plugin is loaded. This is useful for calling the setup function for the
-    plugin, setting up keybindings, etc.
+   The second element is an optional function that will be called after the
+   plugin is loaded. This is useful for calling the setup function for the
+   plugin, setting up keybindings, etc.
 
-    Restart NeoVim after adding or modifying a plugin definition.
+   Restart NeoVim after adding or modifying a plugin definition.
 
 2. Telescope has a dependency on `plenary.nvim`. To define a plugin dependency,
    you can pass a table as the first element in the plugin definition. Make sure
    that the main plugin is the last element in the table. For example:
 
-    ```lua
-    -- lua/plugins/telescope.lua
-    return {
-      {
-        "nvim-lua/plenary.nvim",
-        "nvim-telescope/telescope.nvim",
-      },
-      function()
-        require("telescope").setup({
-          defaults = {
-            layout_strategy = "vertical",
-          },
-        })
-      end
-    }
-    ```
+   ```lua
+   -- lua/plugins/telescope.lua
+   return {
+     {
+       "nvim-lua/plenary.nvim",
+       "nvim-telescope/telescope.nvim",
+     },
+     function()
+       require("telescope").setup({
+         defaults = {
+           layout_strategy = "vertical",
+         },
+       })
+     end
+   }
+   ```
 
-    You can use this to define dependencies or just to group plugins together.
-    But remember that only the last plugin is treated as the "main" plugin.
-    Others will not show up when you run `:Rpm list`.
+   You can use this to define dependencies or just to group plugins together.
+   But remember that only the last plugin is treated as the "main" plugin.
+   Others will not show up when you run `:Rpm list`.
 
 3. Run `:Rpm install <plugin-name>` to install a plugin and its dependencies.
    This will clone the repositories into the

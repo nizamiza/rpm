@@ -3,31 +3,18 @@ local M = {}
 local Core = require("rpm.core")
 local Plugins = require("rpm.plugins")
 local Autocomplete = require("rpm.autocomplete")
+local Constants = require("rpm.constants")
 local UI = require("rpm.ui")
 
-M.plugin_names = {}
 M.commands = Autocomplete.commands
 M.command_names = Autocomplete.command_names
 M.get_command_args_info = Autocomplete.get_command_args_info
-M.autocomplete = Autocomplete.create(M.plugin_names)
+M.autocomplete = Autocomplete.get_completion
 
-M._ = {
-  after_init = function(plugin_list)
-    for name in pairs(plugin_list) do
-      if (name == "_") then
-        goto continue
-      end
-
-      table.insert(M.plugin_names, name)
-      ::continue::
-    end
-
-    table.sort(M.plugin_names)
-  end
-}
-
+---@param plugin_name string
+---@return PluginDefinition|nil
 function M.get(plugin_name)
-  local plugin = Plugins[plugin_name]
+  local plugin = Plugins.load():wait()[plugin_name]
 
   if not plugin then
     print("Plugin " .. plugin_name .. " not found.\n")
@@ -37,41 +24,52 @@ function M.get(plugin_name)
   return plugin
 end
 
-function M.schedule_plugin_list_op(fn, opts)
-  opts = opts or {}
+---@class SchedulePluginListOpOptions
+---@field args? table
+---@field on_complete? fun()
+
+---@param fn fun(plugin_name: string, plugin: PluginDefinition, args?: table)
+---@param options? SchedulePluginListOpOptions
+---@return nil
+function M.perform_plugin_list_op(fn, options)
+  local opts = options or {}
 
   local args = opts.args
   local on_complete = opts.on_complete
 
-  vim.schedule(function()
-    local count = 0
+  for name, plugin in pairs(Plugins.load():wait()) do
+    fn(name, plugin, unpack(args or {}))
+  end
 
-    for name, plugin in pairs(Plugins) do
-      vim.schedule(function()
-        fn(name, plugin, args)
-        count = count + 1
-
-        if count == Plugins._.count and on_complete then
-          vim.schedule(on_complete)
-        end
-      end)
-    end
-  end)
+  if on_complete then
+    vim.schedule(on_complete)
+  end
 end
 
+---@param command_name? string
+---@return nil
 function M.help(command_name)
+  ---@type string[]
+  local lines = {}
+
   if command_name then
-    print(Autocomplete.get_command_help(command_name))
-    return
+    lines = Autocomplete.get_command_help(command_name)
+  else
+    lines = vim.iter(Autocomplete.command_names)
+        :map(function(command)
+          return Autocomplete.get_command_help(command)
+        end)
+        :flatten()
+        :totable()
   end
 
-  print("Available commands:\n")
-
-  for _, command in ipairs(Autocomplete.command_names) do
-    print("\n" .. Autocomplete.get_command_help(command))
-  end
+  UI.open_float(lines, {
+    title = command_name and ("Rpm `" .. command_name .. "`") or "RPM Help",
+  })
 end
 
+---@param plugin_name string
+---@return nil
 function M.generate_helptags(plugin_name)
   local plugin = M.get(plugin_name)
 
@@ -82,6 +80,8 @@ function M.generate_helptags(plugin_name)
   Core.generate_helptags(plugin.path)
 end
 
+---@param plugin_name string
+---@return nil
 function M.info(plugin_name)
   local plugin = M.get(plugin_name)
 
@@ -101,27 +101,29 @@ function M.info(plugin_name)
   })
 end
 
+---@return nil
 function M.list()
   local lines = {}
 
-  for _, name in ipairs(M.plugin_names) do
-    local plugin = M.get(name)
+  M.perform_plugin_list_op(
+    function(_, plugin)
+      local info = Core.get_plugin_info(plugin.path)
+      local version = info.version ~= "" and " (" .. info.version .. ")" or ""
 
-    if not plugin then
-      goto continue
-    end
-
-    local info = Core.get_plugin_info(plugin.path)
-
-    table.insert(lines, info.name .. " (" .. info.version .. ")")
-    ::continue::
-  end
-
-  UI.open_float(lines, {
-    title = "Installed Plugins",
-  })
+      table.insert(lines, info.name .. version)
+    end,
+    {
+      on_complete = function()
+        UI.open_float(lines, {
+          title = "Installed Plugins",
+        })
+      end
+    }
+  )
 end
 
+---@param plugin_name string
+---@return nil
 function M.install(plugin_name)
   local plugin = M.get(plugin_name)
 
@@ -132,6 +134,8 @@ function M.install(plugin_name)
   Core.install_plugin(plugin.path)
 end
 
+---@param plugin_name string
+---@return nil
 function M.update(plugin_name)
   local plugin = M.get(plugin_name)
 
@@ -142,84 +146,70 @@ function M.update(plugin_name)
   Core.update_plugin(plugin.path)
 end
 
+---@param plugin_name string
+---@param silent? boolean
+---@return nil
 function M.delete(plugin_name, silent)
-  silent = silent or false
   local plugin = M.get(plugin_name)
 
   if not plugin then
     return
   end
 
-  local is_rpm = plugin_name == "rpm"
+  local message = plugin_name == Constants.PLUGIN_NAME and
+      "Are you sure you want to delete RPM? This is your plugin manager :D" or
+      "Are you sure you want to delete " .. plugin_name .. "?"
 
-  if is_rpm then
-    silent = true
+  local proceed = silent or UI.prompt_yesno(message)
 
-    local answer = vim.fn.input(
-      "Are you sure you want to delete RPM? This is your plugin manager :D (y/n): "
-    )
-
-    if not Core.parse_input_answer(answer) then
-      return
-    end
+  if not proceed then
+    return
   end
 
   Core.delete_plugin(plugin.path, silent)
 end
 
+---@return nil
 function M.install_all()
-  vim.notify("Installing all plugins...")
+  UI.notify("Installing all plugins...")
 
-  M.schedule_plugin_list_op(
-    function(name)
-      M.install(name)
-    end,
-    {
-      on_complete = function()
-        vim.notify("All plugins have been installed.")
-      end
-    }
-  )
+  M.perform_plugin_list_op(M.install, {
+    on_complete = function()
+      UI.notify("All plugins have been installed.")
+    end
+  })
 end
 
 function M.update_all()
-  vim.notify("Updating all plugins...")
+  UI.notify("Updating all plugins...")
 
-  M.schedule_plugin_list_op(
-    function(name)
-      M.update(name)
-    end,
-    {
-      on_complete = function()
-        vim.notify("All plugins have been updated.")
-      end
-    }
-  )
+  M.perform_plugin_list_op(M.update, {
+    args = { silent = true },
+    on_complete = function()
+      UI.notify("All plugins have been updated.")
+    end
+  })
 end
 
+---@return nil
 function M.delete_all()
-  local answer = vim.fn.input("Are you sure you want to delete all plugins? (y/n): ")
+  local proceed = UI.prompt_yesno("Are you sure you want to delete all plugins?")
 
-  if not Core.parse_input_answer(answer) then
+  if not proceed then
     return
   end
 
-  M.schedule_plugin_list_op(
-    function(name)
-      if name == "rpm" then
-        return
-      end
-
+  for name in pairs(Plugins.load():wait()) do
+    if name ~= Constants.PLUGIN_NAME then
+      UI.notify("Deleting " .. name .. "...")
       M.delete(name, true)
-    end,
-    {
-      on_complete = function()
-        vim.notify("All plugins (except for RPM) have been deleted.")
-      end
-    }
-  )
+    end
+  end
+
+  UI.notify("All plugins (except for RPM) have been deleted.")
 end
 
+---@return nil
 function M.clean()
   local installed_plugins = vim.fn.globpath(
     vim.fn.stdpath("config") .. "/pack/plugins/start",
@@ -230,8 +220,8 @@ function M.clean()
 
   local all_plugin_paths = {}
 
-  for _, plugin in pairs(Plugins) do
-    local paths = type(plugin.path) == "table" and plugin.path or { plugin.path }
+  for _, plugin in pairs(Plugins.load():wait()) do
+    local paths = Core.coerce_to_table(plugin.path)
 
     for _, path in ipairs(paths) do
       local info = Core.get_plugin_info(path)
@@ -244,20 +234,26 @@ function M.clean()
     local name = installed_plugin:match("([^/]+)$")
 
     if not vim.tbl_contains(all_plugin_paths, name) then
-      vim.notify("Deleting " .. name .. "...")
+      UI.notify("Deleting " .. name .. "...")
       Core.delete_plugin(name, true)
       delete_count = delete_count + 1
     end
   end
 
-  vim.notify("Deleted " .. delete_count .. " plugins.")
+  UI.notify("Deleted " .. delete_count .. " plugins.")
 end
 
-function M.setup(opts)
-  opts = opts or {}
+---@class SetupOptions
+---@field after_init fun()
 
-  if opts.after_init and type(opts.after_init) == "function" then
-    M.after_init = opts.after_init
+---@param opts SetupOptions
+---@return nil
+function M.setup(opts)
+  local options = opts or {}
+  local after_init = options.after_init
+
+  if after_init and type(after_init) == "function" then
+    M.after_init = after_init
   end
 end
 

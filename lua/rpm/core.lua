@@ -1,18 +1,28 @@
+---@alias PluginPath string|table
+
+local UI = require("rpm.ui")
+
 local M = {}
 
-function M.parse_input_answer(answer)
-  if answer:lower():match("^y") then
-    return true
+---@param install_path string
+---@return string
+function M.get_plugin_version(install_path)
+  if vim.fn.isdirectory(install_path) == 0 then
+    return "Not installed"
   end
 
-  return false
+  local tag_info = vim.system({ "git", "-C", install_path, "describe", "--tags" }):wait()
+
+  if tag_info.code ~= 0 or not tag_info.stdout then
+    return ""
+  end
+
+  local version = tag_info.stdout:gsub("\n", "")
+  return version
 end
 
-function M.get_plugin_version(install_path)
-  return vim.fn.isdirectory(install_path) == 0 and "Not installed" or
-    vim.fn.system({ "git", "-C", install_path, "describe", "--tags" }):gsub("\n", "")
-end
-
+---@param value any
+---@return table
 function M.coerce_to_table(value)
   if not value then
     return {}
@@ -25,14 +35,26 @@ function M.coerce_to_table(value)
   return { value }
 end
 
-function M.silent_print(message, silent)
-  silent = silent or false
+---@param message? string
+---@param silent? boolean
+---@param options? NotifyOptions
+---@return nil
+function M.silent_print(message, silent, options)
+  local opts = options or {}
 
   if not silent then
-    vim.notify(message)
+    UI.notify(message or "", opts)
   end
 end
 
+---@class PluginInfo
+---@field install_path string
+---@field name string
+---@field path string
+---@field version string
+
+---@param path PluginPath
+---@return PluginInfo
 function M.get_plugin_info(path)
   local paths = M.coerce_to_table(path)
 
@@ -61,8 +83,11 @@ function M.get_plugin_info(path)
   }
 end
 
+---@param path PluginPath
+---@param silent? boolean
+---@return boolean
 function M.is_plugin_installed(path, silent)
-  local paths = M.coerce_to_table(path) 
+  local paths = M.coerce_to_table(path)
 
   for _, p in ipairs(paths) do
     local info = M.get_plugin_info(p)
@@ -76,6 +101,9 @@ function M.is_plugin_installed(path, silent)
   return true
 end
 
+---@param path PluginPath
+---@param silent? boolean
+---@return nil
 function M.generate_helptags(path, silent)
   local info = M.get_plugin_info(path)
   local doc_dir = info.install_path .. "/doc"
@@ -84,11 +112,14 @@ function M.generate_helptags(path, silent)
     M.silent_print("Generating help tags for " .. info.name .. "...", silent)
 
     vim.cmd("helptags " .. doc_dir)
-    
+
     M.silent_print("Help tags for " .. info.name .. " have been generated!", silent)
   end
 end
 
+---@param path PluginPath
+---@param silent? boolean
+---@return nil
 function M.install_plugin(path, silent)
   local paths = M.coerce_to_table(path)
 
@@ -103,7 +134,23 @@ function M.install_plugin(path, silent)
 
     M.silent_print("Cloning " .. url .. " to " .. info.install_path .. "...", silent)
 
-    vim.fn.system({ "git", "clone", url, info.install_path })
+    local clone_result = vim.system({
+      "git",
+      "clone",
+      "--filter=blob:none",
+      url,
+      info.install_path,
+    }):wait()
+
+    if clone_result.code ~= 0 then
+      M.silent_print("Failed to clone " .. url .. " to " .. info.install_path .. ".", silent, {
+        level = vim.log.levels.ERROR
+      })
+      M.silent_print(clone_result.stderr, silent, {
+        level = vim.log.levels.ERROR
+      })
+      goto continue
+    end
 
     M.generate_helptags(p, silent)
 
@@ -112,6 +159,9 @@ function M.install_plugin(path, silent)
   end
 end
 
+---@param path PluginPath
+---@param silent? boolean
+---@return nil
 function M.update_plugin(path, silent)
   local paths = M.coerce_to_table(path)
 
@@ -119,13 +169,13 @@ function M.update_plugin(path, silent)
     if not M.is_plugin_installed(p) then
       M.silent_print("Dependency " .. p .. " is not installed.", silent)
 
-      local answer = "n"
+      local proceed_with_install = false
 
       if not silent then
-        answer = vim.fn.input("Would you like to install it? (y/n): ")
+        proceed_with_install = UI.prompt_yesno("Would you like to install it?")
       end
 
-      if not M.parse_input_answer(answer) then
+      if not proceed_with_install then
         goto continue
       end
 
@@ -137,7 +187,17 @@ function M.update_plugin(path, silent)
 
     M.silent_print("Updating dependency " .. info.name .. "...", silent)
 
-    vim.fn.system({ "git", "-C", info.install_path, "pull" })
+    local pull_result = vim.system({ "git", "-C", info.install_path, "pull" }):wait()
+
+    if pull_result.code ~= 0 then
+      M.silent_print("Failed to update " .. info.name .. ".", silent, {
+        level = vim.log.levels.ERROR
+      })
+      M.silent_print(pull_result.stderr, silent, {
+        level = vim.log.levels.ERROR
+      })
+      goto continue
+    end
 
     local new_version = M.get_plugin_version(info.install_path)
 
@@ -151,6 +211,9 @@ function M.update_plugin(path, silent)
   end
 end
 
+---@param path PluginPath
+---@param silent? boolean
+---@return nil
 function M.delete_plugin(path, silent)
   local paths = M.coerce_to_table(path)
 
@@ -158,21 +221,22 @@ function M.delete_plugin(path, silent)
     local info = M.get_plugin_info(p)
 
     if vim.fn.isdirectory(info.install_path) == 0 then
-      M.silent_print("Dependency " .. info.name .. " is not installed.", silent)
+      M.silent_print("Dependency " .. info.name .. " is not installed.", silent, {
+        level = vim.log.levels.WARN
+      })
       goto continue
-    end
-
-    if not silent then
-      local answer = vim.fn.input("Are you sure you want to delete " .. info.name .. "? (y/n): ")
-
-      if not M.parse_input_answer(answer) then
-        goto continue
-      end
     end
 
     M.silent_print("Deleting " .. info.name .. "...", silent)
 
-    vim.fn.system({ "rm", "-rf", info.install_path })
+    local rm_result = vim.system({ "rm", "-rf", info.install_path }):wait()
+
+    if rm_result.code ~= 0 then
+      M.silent_print("Failed to delete " .. info.name .. ".", silent, {
+        level = vim.log.levels.ERROR
+      })
+      goto continue
+    end
 
     M.silent_print("Dependency " .. info.name .. " has been deleted.", silent)
     ::continue::

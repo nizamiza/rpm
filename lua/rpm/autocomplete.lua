@@ -1,5 +1,12 @@
+---@class CommandDefinition
+---@field desc string
+---@field nargs number|string
+
+local Plugins = require("rpm.plugins")
+
 local M = {}
 
+---@type table<string, CommandDefinition>
 M.commands = {
   help = {
     desc = "Get help for a command",
@@ -47,7 +54,9 @@ M.commands = {
   },
 }
 
+---@type string[]
 M.command_names = {}
+
 M.name_padding = 0
 
 for command, _ in pairs(M.commands) do
@@ -60,6 +69,13 @@ end
 
 local indent = string.rep(" ", M.name_padding + 3)
 
+---@class CommandArgsInfo
+---@field has_args boolean
+---@field max_args number
+---@field min_args number
+
+---@param command CommandDefinition
+---@return CommandArgsInfo
 function M.get_command_args_info(command)
   if command == nil then
     return {
@@ -85,22 +101,29 @@ function M.get_command_args_info(command)
   }
 end
 
+---@param name string
+---@return string[]
 function M.get_command_help(name)
   local command = M.commands[name]
 
   if not command then
-    return "Command " .. name .. " not found."
+    return { "Command " .. name .. " not found." }
   end
 
   local padded_name = name .. string.rep(" ", M.name_padding - #name)
 
   local has_args = M.get_command_args_info(command).has_args
 
-  return padded_name .. " - " .. command.desc .. "\n" ..
-      indent .. "Required arguments: " .. command.nargs .. "\n" ..
-      indent .. "Usage: `:Rpm " .. name .. (has_args and " <args>" or "") .. "`"
+  return {
+    padded_name .. " - " .. command.desc,
+    indent .. "Required arguments: " .. command.nargs,
+    indent .. "Usage: `:Rpm " .. name .. (has_args and " <args>" or "") .. "`",
+  }
 end
 
+---@param options string[]
+---@param arg_lead string
+---@return string[]
 function M.narrow_options(options, arg_lead)
   local matches = {}
   local arg_lead_lower = arg_lead:lower()
@@ -120,36 +143,56 @@ function M.narrow_options(options, arg_lead)
   return matches
 end
 
-function M.create(plugin_list)
-  local function autocomplete(arg_lead, cmd_line)
-    local args = vim.split(cmd_line, " ")
+---@return string[]
+function M.get_plugin_names()
+  local plugin_list = Plugins.load():wait()
 
-    if #args == 1 then
-      return M.command_names
+  ---@type string[]
+  local plugin_names = {}
+
+  for name in pairs(plugin_list) do
+    if (name == "_") then
+      goto continue
     end
 
-    local cmd = args[2]:lower()
-    local command = M.commands[cmd]
-
-    local args_info = M.get_command_args_info(command)
-    local has_args = args_info.has_args
-    local max_args = args_info.max_args
-    local is_over_max_args = #args - 2 > max_args
-
-    local is_cmd_passed = #args > 2
-
-    if not has_args and is_cmd_passed or is_over_max_args then
-      return {}
-    end
-
-    local is_help = cmd == "help"
-
-    return has_args and not is_help and
-        M.narrow_options(plugin_list, arg_lead) or
-        M.narrow_options(M.command_names, arg_lead)
+    table.insert(plugin_names, name)
+    ::continue::
   end
 
-  return autocomplete
+  table.sort(plugin_names)
+  return plugin_names
+end
+
+---@param arg_lead string
+---@param cmd_line string
+---@return string[]
+function M.get_completion(arg_lead, cmd_line)
+  local args = vim.split(cmd_line, " ")
+  local plugin_names = M.get_plugin_names()
+
+  if #args == 1 then
+    return M.command_names
+  end
+
+  local cmd = args[2]:lower()
+  local command = M.commands[cmd]
+
+  local args_info = M.get_command_args_info(command)
+  local has_args = args_info.has_args
+  local max_args = args_info.max_args
+  local is_over_max_args = #args - 2 > max_args
+
+  local is_cmd_passed = #args > 2
+
+  if not has_args and is_cmd_passed or is_over_max_args then
+    return {}
+  end
+
+  local is_help = cmd == "help"
+
+  return has_args and not is_help and
+      M.narrow_options(plugin_names, arg_lead) or
+      M.narrow_options(M.command_names, arg_lead)
 end
 
 return M
